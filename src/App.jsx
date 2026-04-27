@@ -5,7 +5,7 @@ import * as THREE from "three";
 const WA_NUMBER  = "21627870862";
 const WA_LINK    = `https://wa.me/${WA_NUMBER}`;
 const ADMIN_CRED = { u: "admin", p: "18062006@sy" };
-const SECRET_SEQ = "nexora";
+const SECRET_SEQ = "yomna";
 const DEVELOPER  = { name: "Med Salime Bousmina", role: "Full-Stack & AI Developer", avatar: "MSB" };
 
 const STATUS_CFG = {
@@ -626,6 +626,7 @@ export default function App() {
   const [menuOpen, setMenuOpen]   = useState(false);
   const [form, setForm]           = useState({ name:"", email:"", service:"", msg:"" });
   const [sent, setSent]           = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   const [openProject, setOpenProject] = useState(null);
   const secretBuf = useRef("");
 
@@ -657,11 +658,24 @@ export default function App() {
   };
   const saveMessages = async (d) => { setMessages(d); try{await window.storage.set("nxr3_m",JSON.stringify(d));}catch{} };
   const scrollTo = (id) => { document.getElementById(id)?.scrollIntoView({behavior:"smooth"}); setMenuOpen(false); };
-  const handleContact = (e) => {
+  const handleContact = async (e) => {
     e.preventDefault();
+    setEmailLoading(true);
     const msg={...form,id:Date.now(),date:new Date().toLocaleDateString(),read:false};
-    saveMessages([msg,...messages]); setSent(true); setForm({name:"",email:"",service:"",msg:""});
-    setTimeout(()=>setSent(false),4000);
+
+    try {
+      await fetch("https://formspree.io/f/xvzdjkay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, service: form.service, message: form.msg }),
+      });
+    } catch (err) {
+      console.error("Formspree error:", err);
+    } finally {
+      saveMessages([msg,...messages]); setSent(true); setForm({name:"",email:"",service:"",msg:""});
+      setEmailLoading(false);
+      setTimeout(()=>setSent(false),4000);
+    }
   };
   const login=(creds)=>{if(creds.u===ADMIN_CRED.u&&creds.p===ADMIN_CRED.p){setView("admin");setAdminTab("dash");return true;}return false;};
   const logout=()=>setView("site");
@@ -682,7 +696,7 @@ export default function App() {
       {view==="site" && <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="wa-float" title="Chat on WhatsApp"><svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>}
       {view==="login" && <LoginPage onLogin={login} onBack={()=>setView("site")} />}
       {view==="admin" && <AdminPanel tab={adminTab} setTab={setAdminTab} projects={projects} messages={messages} saveProjects={saveProjects} saveMessages={saveMessages} onLogout={logout} />}
-      {view==="site"  && <SiteView scrolled={scrolled} activeNav={activeNav} menuOpen={menuOpen} setMenuOpen={setMenuOpen} scrollTo={scrollTo} form={form} setForm={setForm} sent={sent} handleContact={handleContact} projects={displayProjects} onProjectClick={setOpenProject} />}
+      {view==="site"  && <SiteView scrolled={scrolled} activeNav={activeNav} menuOpen={menuOpen} setMenuOpen={setMenuOpen} scrollTo={scrollTo} form={form} setForm={setForm} sent={sent} emailLoading={emailLoading} handleContact={handleContact} projects={displayProjects} onProjectClick={setOpenProject} />}
     </>
   );
 }
@@ -891,7 +905,7 @@ function AdminMsgs({messages,saveMessages}) {
 }
 
 /* ── SITE ───────────────────────────────────────────────────── */
-function SiteView({scrolled,activeNav,menuOpen,setMenuOpen,scrollTo,form,setForm,sent,handleContact,projects,onProjectClick}) {
+function SiteView({scrolled,activeNav,menuOpen,setMenuOpen,scrollTo,form,setForm,sent,emailLoading,handleContact,projects,onProjectClick}) {
   return(
     <>
       {/* NAV */}
@@ -1103,7 +1117,7 @@ function SiteView({scrolled,activeNav,menuOpen,setMenuOpen,scrollTo,form,setForm
                     </select>
                   </div>
                   <div><label style={LBL}>Project Details</label><textarea required rows={4} placeholder="Describe your idea…" value={form.msg} onChange={e=>setForm(f=>({...f,msg:e.target.value}))} style={{resize:"vertical"}} /></div>
-                  <button type="submit" className="btn-solid" style={{padding:"14px",borderRadius:11,fontSize:"0.92rem"}}>Send Message →</button>
+                  <button type="submit" className="btn-solid" style={{padding:"14px",borderRadius:11,fontSize:"0.92rem",opacity:emailLoading?0.7:1,cursor:emailLoading?"not-allowed":"pointer"}} disabled={emailLoading}>{emailLoading?"Sending…":"Send Message →"}</button>
                 </form>
               )}
             </TiltCard>
