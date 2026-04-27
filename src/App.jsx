@@ -5,7 +5,7 @@ import * as THREE from "three";
 const WA_NUMBER  = "21627870862";
 const WA_LINK    = `https://wa.me/${WA_NUMBER}`;
 const ADMIN_CRED = { u: "admin", p: "18062006@sy" };
-const SECRET_SEQ = "nexora";
+const SECRET_SEQ = "yomna";
 const DEVELOPER  = { name: "Med Salime Bousmina", role: "Full-Stack & AI Developer", avatar: "MSB" };
 
 const STATUS_CFG = {
